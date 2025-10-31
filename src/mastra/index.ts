@@ -1,4 +1,3 @@
-
 import { Mastra } from '@mastra/core/mastra';
 import { PinoLogger } from '@mastra/loggers';
 import { LibSQLStore } from '@mastra/libsql';
@@ -6,10 +5,11 @@ import { weatherWorkflow } from './workflows/weather-workflow';
 import { weatherAgent } from './agents/weather-agent';
 import { toolCallAppropriatenessScorer, completenessScorer, translationScorer } from './scorers/weather-scorer';
 import { bookSuggestAgent } from './agents/book-suggest-agent';
+import { bookSuggestWorkflow } from './workflows/book-suggest-workflow';
 import { a2aAgentRoute } from './routes/a2a-agent-route';
 
 export const mastra = new Mastra({
-  workflows: { weatherWorkflow },
+  workflows: { weatherWorkflow, bookSuggestWorkflow },
   agents: { weatherAgent, bookSuggestAgent },
   scorers: { toolCallAppropriatenessScorer, completenessScorer, translationScorer },
   storage: new LibSQLStore({
