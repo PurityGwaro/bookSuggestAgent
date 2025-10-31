@@ -18,7 +18,7 @@ export const bookSuggestAgent = new Agent({
     
     Use the bookTool to fetch current book data.
     `,
-    model: "anthropic/claude-sonnet-4-5-20250929",
+    model: "google/gemini-2.5-flash",
     tools: { bookSuggestTool },
     memory: new Memory({
         storage: new LibSQLStore({
