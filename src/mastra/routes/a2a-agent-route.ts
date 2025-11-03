@@ -1,7 +1,6 @@
 import { registerApiRoute } from '@mastra/core/server';
 import { randomUUID } from 'crypto';
 
-// Define types for A2A protocol
 type MessageRole = 'user' | 'assistant' | 'system' | 'agent';
 type MessageKind = 'message' | 'tool' | 'error';
 
@@ -108,14 +107,23 @@ export const a2aAgentRoute = registerApiRoute('/a2a/agent/:agentId', {
       }
 
       // Convert A2A messages to Mastra format
-      const mastraMessages = messagesList.map((msg) => ({
-        role: msg.role,
-        content: msg.parts?.map((part) => {
-          if (part.kind === 'text' && part.text) return part.text;
-          if (part.kind === 'data' && part.data) return JSON.stringify(part.data);
-          return '';
-        }).join('\n') || ''
-      }));
+      // If no messages or empty message, create an initial user message to trigger greeting
+      let mastraMessages: Array<{role: string; content: string}>;
+      
+      if (messagesList.length === 0 || 
+          (messagesList.length === 1 && !messagesList[0].parts?.some(p => p.text?.trim()))) {
+        // Empty or initial connection - trigger greeting
+        mastraMessages = [{ role: 'user', content: '' }];
+      } else {
+        mastraMessages = messagesList.map((msg) => ({
+          role: msg.role,
+          content: msg.parts?.map((part) => {
+            if (part.kind === 'text' && part.text) return part.text;
+            if (part.kind === 'data' && part.data) return JSON.stringify(part.data);
+            return '';
+          }).join('\n') || ''
+        }));
+      }
 
       // Execute agent with proper typing
       const response = await agent.generate(mastraMessages) as AgentResponse;
