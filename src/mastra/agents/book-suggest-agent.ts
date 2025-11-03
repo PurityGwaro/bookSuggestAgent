@@ -32,7 +32,7 @@ HANDLING USER REQUESTS:
    - Format each suggestion clearly with:
      • Title (bold or emphasized)
      • Author name
-     • Link to learn more
+     • Link to purchase book
    - If fewer than 5 books are found, that's okay - present what's available
    - Add a brief note about what makes the books relevant to their search
 
