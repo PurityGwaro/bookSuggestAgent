@@ -10,9 +10,6 @@ const suggestionSchema = z.object({
   link: z.string(),
 });
 
-/**
- * Format book response object
- */
 const formatBookSuggestion = (work: any) => {
   if (!work?.title || !work?.authors?.[0]?.name || !work?.key) {
     return null;
@@ -25,12 +22,9 @@ const formatBookSuggestion = (work: any) => {
   };
 };
 
-/**
- * Step: Fetch Books From API
- */
 const fetchBookSuggestions = createStep({
   id: 'fetch-book-suggestions',
-  description: 'Fetch 5 book suggestions for a topic',
+  description: 'Fetch book suggestions for a topic',
   inputSchema: z.object({
     topic: z.string().describe('The topic to get books for'),
   }),
@@ -40,17 +34,32 @@ const fetchBookSuggestions = createStep({
   execute: async ({ inputData }) => {
     if (!inputData) throw new Error('Missing topic input');
 
-    const encodedTopic = encodeURIComponent(inputData.topic.toLowerCase().trim());
-
+    const cleanedTopic = inputData.topic
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9\s-]/gi, ' ')
+      .replace(/\s+/g, '_')
+      .replace(/_{2,}/g, '_')
+      .replace(/^_|_$/g, '');
+    
+    const encodedTopic = encodeURIComponent(cleanedTopic);
+    
     const response = await fetch(
-      `${OPEN_LIBRARY_API}/${encodedTopic}.json?limit=${BOOKS_LIMIT}`,
+      `${OPEN_LIBRARY_API}/${encodedTopic}.json?limit=10`,
+      {
+        headers: { 'Accept': 'application/json' },
+      }
     );
-
+    
     if (!response.ok) {
       throw new Error('Failed to fetch book suggestions');
     }
 
     const data = await response.json();
+    
+    if (!data.works || data.works.length === 0) {
+      throw new Error(`No books found for "${inputData.topic}"`);
+    }
 
     const suggestions =
       data.works
@@ -62,9 +71,6 @@ const fetchBookSuggestions = createStep({
   },
 });
 
-/**
- * Workflow only has 1 step for now
- */
 const bookSuggestWorkflow = createWorkflow({
   id: 'book-suggest-workflow',
   inputSchema: z.object({
