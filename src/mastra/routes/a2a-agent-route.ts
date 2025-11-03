@@ -70,16 +70,18 @@ export const a2aAgentRoute = registerApiRoute('/a2a/agent/:agentId', {
 
       // Parse JSON-RPC 2.0 request
       const body = await c.req.json() as A2ARequest;
-      const { jsonrpc, id: requestId, method, params = {} } = body;
+      const { jsonrpc, method, params = {} } = body;
+
+      const requestId = body.id || randomUUID();
 
       // Validate JSON-RPC 2.0 format
-      if (jsonrpc !== '2.0' || !requestId) {
+      if (jsonrpc !== '2.0') {
         return c.json({
           jsonrpc: '2.0',
           id: requestId || null,
           error: {
             code: -32600,
-            message: 'Invalid Request: jsonrpc must be "2.0" and id is required'
+            message: 'Invalid Request: jsonrpc must be "2.0"'
           }
         }, 400);
       }
@@ -91,7 +93,7 @@ export const a2aAgentRoute = registerApiRoute('/a2a/agent/:agentId', {
           id: requestId,
           error: {
             code: -32602,
-            message: `Agent '${agentId}' not found` 
+            message: `Agent '${agentId}' not found`
           }
         }, 404);
       }
@@ -108,24 +110,19 @@ export const a2aAgentRoute = registerApiRoute('/a2a/agent/:agentId', {
 
       // Convert A2A messages to Mastra format
       // If no messages or empty message, create an initial user message to trigger greeting
-      let mastraMessages: Array<{role: string; content: string}>;
+      let mastraMessages: Array<{ role: string; content: string }>;
 
-      if (messagesList.length === 0 ||
-          (messagesList.length === 1 && !messagesList[0].parts?.some(p => p.text?.trim()))) {
-        // Empty or initial connection - trigger greeting
-        mastraMessages = [{ role: 'user', content: '' }];
-      } else {
-        mastraMessages = messagesList.map((msg) => ({
+      mastraMessages = messagesList.length > 0
+        ? messagesList.map((msg) => ({
           role: msg.role,
-          content: msg.parts?.map((part) => {
-            // Only process text parts, ignore data parts (which contain conversation history)
-            if (part.kind === 'text' && part.text) return part.text;
-            return '';
-          })
-          .filter(text => text.trim()) // Remove empty strings
-          .join('\n') || ''
-        }));
-      }
+          content: msg.parts
+            ?.filter((part): part is { kind: 'text'; text: string } =>
+              part.kind === 'text' && !!part.text?.trim()
+            )
+            .map(part => part.text)
+            .join('\n') || ''
+        }))
+        : [{ role: 'user', content: '' }];
 
       // Execute agent with proper typing
       const response = await agent.generate(mastraMessages) as AgentResponse;
@@ -137,12 +134,12 @@ export const a2aAgentRoute = registerApiRoute('/a2a/agent/:agentId', {
         name: string;
         parts: MessagePart[];
       }> = [
-        {
-          artifactId: randomUUID(),
-          name: `${agentId}Response`,
-          parts: [{ kind: 'text', text: agentText }]
-        }
-      ];
+          {
+            artifactId: randomUUID(),
+            name: `${agentId}Response`,
+            parts: [{ kind: 'text', text: agentText }]
+          }
+        ];
 
       // Add tool results as artifacts
       if (response.toolResults?.length) {
