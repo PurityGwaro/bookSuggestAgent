@@ -109,8 +109,8 @@ export const a2aAgentRoute = registerApiRoute('/a2a/agent/:agentId', {
       // Convert A2A messages to Mastra format
       // If no messages or empty message, create an initial user message to trigger greeting
       let mastraMessages: Array<{role: string; content: string}>;
-      
-      if (messagesList.length === 0 || 
+
+      if (messagesList.length === 0 ||
           (messagesList.length === 1 && !messagesList[0].parts?.some(p => p.text?.trim()))) {
         // Empty or initial connection - trigger greeting
         mastraMessages = [{ role: 'user', content: '' }];
@@ -118,10 +118,12 @@ export const a2aAgentRoute = registerApiRoute('/a2a/agent/:agentId', {
         mastraMessages = messagesList.map((msg) => ({
           role: msg.role,
           content: msg.parts?.map((part) => {
+            // Only process text parts, ignore data parts (which contain conversation history)
             if (part.kind === 'text' && part.text) return part.text;
-            if (part.kind === 'data' && part.data) return JSON.stringify(part.data);
             return '';
-          }).join('\n') || ''
+          })
+          .filter(text => text.trim()) // Remove empty strings
+          .join('\n') || ''
         }));
       }
 
