@@ -36,7 +36,7 @@ src/mastra/
 
 - **Node.js**: Version 20.9.0 or higher.
 - **npm**: package manager I used.
-- **Open Library API**: `GOOGLE_GENERATIVE_AI_API_KEY` API key required as it uses Gemini AI.
+- **Open Library API**: `GOOGLE_GENERATIVE_AI_API_KEY` API key required as it uses Gemini AI - You get this through creating an account with Google AI Studio.
 
 ### Installation
 
