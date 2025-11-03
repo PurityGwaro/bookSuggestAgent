@@ -11,10 +11,13 @@ interface OpenLibraryWork {
     key: string;
     title: string;
     authors?: Array<{ name: string }>;
+    first_publish_year?: number;
+    subject?: string[];
 }
 
 interface OpenLibraryResponse {
     works?: OpenLibraryWork[];
+    name?: string;
 }
 
 const BOOKS_LIMIT = 5;
@@ -33,13 +36,14 @@ const formatBookSuggestion = (work: OpenLibraryWork): BookSuggestion | null => {
 
 const getBookSuggestions = async (topic: string): Promise<BookSuggestion[]> => {
     try {
+        // Clean and encode the topic - keep it flexible for any user input
         const cleanedTopic = topic
             .toLowerCase()
             .trim()
-            .replace(/[^a-z0-9\s-]/gi, ' ')
-            .replace(/\s+/g, '_')
-            .replace(/_{2,}/g, '_')
-            .replace(/^_|_$/g, '');
+            .replace(/[^a-z0-9\s-]/gi, ' ') // Replace special chars with space
+            .replace(/\s+/g, '_') // Replace spaces with underscore
+            .replace(/_{2,}/g, '_') // Replace multiple underscores with single
+            .replace(/^_|_$/g, ''); // Remove leading/trailing underscores
         
         if (!cleanedTopic) {
             throw new Error(`Please provide a topic to search for books.`);
@@ -52,24 +56,24 @@ const getBookSuggestions = async (topic: string): Promise<BookSuggestion[]> => {
             {
                 headers: {
                     'Accept': 'application/json',
-                },
+                }
             }
         );
         
         if (!response.ok) {
             if (response.status === 404) {
-                throw new Error(`I couldn't find books about "${topic}". Try rephrasing your topic.`);
+                throw new Error(`I couldn't find books specifically about "${topic}". Try rephrasing your topic or try something more general or specific.`);
             }
             if (response.status === 429) {
-                throw new Error(`The book service is busy. Please try again in a moment.`);
+                throw new Error(`The book service is busy right now. Please try again in a moment.`);
             }
-            throw new Error(`Sorry, I'm having trouble fetching books. Please try again.`);
+            throw new Error(`Sorry, I'm having trouble fetching books right now. Please try again.`);
         }
 
         const data: OpenLibraryResponse = await response.json();
         
         if (!data.works || data.works.length === 0) {
-            throw new Error(`I couldn't find books about "${topic}". Try rephrasing or being more specific.`);
+            throw new Error(`I couldn't find books about "${topic}". Try rephrasing or being more specific about what you're looking for.`);
         }
 
         const suggestions = data.works
@@ -78,7 +82,7 @@ const getBookSuggestions = async (topic: string): Promise<BookSuggestion[]> => {
             .slice(0, BOOKS_LIMIT);
 
         if (suggestions.length === 0) {
-            throw new Error(`I found some results but couldn't get complete book information for "${topic}".`);
+            throw new Error(`I found some results but couldn't get complete book information for "${topic}". Try a different search term.`);
         }
 
         return suggestions;
